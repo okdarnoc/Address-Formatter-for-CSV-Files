@@ -1,140 +1,375 @@
-# Address Splitter
+# 📬 Address Formatter for CSV Files
 
-This Python script processes a CSV file containing addresses and splits each address into multiple lines based on a specified maximum text width in centimeters. This can be useful for formatting addresses to fit within certain width constraints for printing or display purposes.
+[![Python 3.7+](https://img.shields.io/badge/python-3.7+-blue.svg)](https://www.python.org/downloads/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![Pillow](https://img.shields.io/badge/Pillow-required-green.svg)](https://pillow.readthedocs.io/)
 
-## Prerequisites
+A Python utility that intelligently splits long address fields in CSV files into multiple lines based on a specified maximum text width. Perfect for formatting addresses to fit within label constraints, mail merge templates, or fixed-width display areas.
 
-- Python 3.x
-- `Pillow` library for image and text width calculations
-- A TrueType font (e.g. Arial) available on your system
+![Demo](docs/demo.gif)
 
-## Installation
+---
 
-1. Ensure you have Python 3.x installed on your machine. You can download it from [python.org](https://www.python.org/downloads/).
+## ✨ Features
 
-2. Install the required `Pillow` library:
-   ```sh
-   pip install pillow
-   ```
+- **Smart Line Breaking**: Splits addresses at natural break points (commas) rather than mid-word
+- **Font-Aware Measurement**: Uses actual font metrics for accurate width calculation
+- **Cross-Platform**: Works on Windows, macOS, and Linux
+- **Interactive Mode**: User-friendly prompts guide you through the process
+- **Column Preview**: Automatically displays CSV columns to help you select the right one
+- **Flexible Units**: Specify width in centimeters with configurable DPI
+- **CSV Dialect Detection**: Automatically detects delimiter style (comma, semicolon, tab)
+- **Non-Destructive**: Creates a new file, preserving your original data
 
-3. Make sure you have the `arial.ttf` font file on your system. If it's not available, you can use any TrueType font by adjusting the script accordingly.
+---
 
-## Usage
+## 📋 Table of Contents
 
-1. Save the script in a Python file, e.g., `address_splitter.py`.
+- [Installation](#-installation)
+- [Quick Start](#-quick-start)
+- [Usage Guide](#-usage-guide)
+- [Understanding DPI](#-understanding-dpi)
+- [Examples](#-examples)
+- [Configuration Options](#-configuration-options)
+- [Troubleshooting](#-troubleshooting)
+- [Contributing](#-contributing)
+- [License](#-license)
 
-2. Run the script using a terminal or command prompt:
-   ```sh
+---
+
+## 🚀 Installation
+
+### Prerequisites
+
+- Python 3.7 or higher
+- pip (Python package manager)
+
+### Step 1: Clone the Repository
+
+```bash
+git clone https://github.com/okdarnoc/Address-Formatter-for-CSV-Files.git
+cd Address-Formatter-for-CSV-Files
+```
+
+### Step 2: Install Dependencies
+
+```bash
+pip install -r requirements.txt
+```
+
+Or install Pillow directly:
+
+```bash
+pip install Pillow
+```
+
+### Step 3: Verify Installation
+
+```bash
+python address_splitter.py --help
+```
+
+---
+
+## ⚡ Quick Start
+
+1. Place your CSV file in the same directory as the script (or note its full path)
+2. Run the script:
+   ```bash
    python address_splitter.py
    ```
+3. Follow the prompts:
+   ```
+   Enter the path to the CSV file: customers.csv
+   Enter the column number containing the addresses: 2
+   Enter the font name [arial]: 
+   Enter the font size [12]: 
+   Enter the maximum line width in cm: 5
+   Enter the DPI [96]: 
+   ```
+4. Find your formatted file at `customers_modified.csv`
 
-3. Follow the prompts to input the necessary information:
-   - The path to the CSV file containing addresses
-   - The font size to be used
-   - The maximum line length in centimeters
-   - The column number containing the addresses (starting from 0)
+---
 
-4. The script will process the CSV file and save a new CSV file with the addresses formatted into multiple lines. The new file will have `_modified` appended to the original filename.
+## 📖 Usage Guide
 
-## Example
+### Running the Script
 
-Given a CSV file (`addresses.csv`) with the following content:
-
+```bash
+python address_splitter.py
 ```
-Name,Address
-John Doe,"1234 Elm Street, Springfield, IL, 62704"
-Jane Smith,"5678 Maple Avenue, Smalltown, TX, 78910"
+
+The script will interactively prompt you for:
+
+| Prompt | Description | Example |
+|--------|-------------|---------|
+| CSV file path | Location of your input file | `data/addresses.csv` |
+| Column number | Zero-based index of address column | `2` |
+| Font name | TrueType font to use for measurement | `arial` |
+| Font size | Font size in points | `12` |
+| Max width (cm) | Maximum line width in centimeters | `5.5` |
+| DPI | Dots per inch for conversion | `96` or `300` |
+| Output path | Where to save the result | `addresses_formatted.csv` |
+
+### Input File Format
+
+Your CSV should have addresses in a single column:
+
+```csv
+Name,Company,Address,Phone
+John Doe,Acme Corp,"1234 Elm Street, Springfield, IL, 62704",555-0100
+Jane Smith,Tech Inc,"5678 Maple Avenue, Smalltown, TX, 78910",555-0200
 ```
 
-Running the script with the appropriate inputs will produce a modified CSV file (`addresses_modified.csv`) with addresses split into multiple lines:
+### Output Format
 
-```
-Name,Address
-John Doe,"1234 Elm Street,
+The script creates a new file with addresses split across multiple lines:
+
+```csv
+Name,Company,Address,Phone
+John Doe,Acme Corp,"1234 Elm Street,
 Springfield, IL,
-62704"
-Jane Smith,"5678 Maple Avenue,
+62704",555-0100
+Jane Smith,Tech Inc,"5678 Maple Avenue,
 Smalltown, TX,
-78910"
+78910",555-0200
 ```
 
-## Script
+---
 
-```python
-import csv
-from textwrap import wrap
-from PIL import ImageFont, ImageDraw, Image
+## 📏 Understanding DPI
 
-# Function to calculate the width of the text in the specified font
-def text_width(text, font):
-    image = Image.new('RGB', (1000, 1000))
-    draw = ImageDraw.Draw(image)
-    return draw.textlength(text, font=font)
+DPI (Dots Per Inch) affects how centimeters are converted to pixels. Choose based on your use case:
 
-# Function to split address lines
-def split_address_line(address, font, max_width):
-    parts = address.split(', ')
-    lines = []
-    current_line = ""
-    for part in parts:
-        if text_width(current_line + part, font) <= max_width:
-            current_line += part + ", "
-        else:
-            lines.append(current_line.rstrip(', '))
-            current_line = part + ", "
-    if current_line:
-        lines.append(current_line.rstrip(', '))
-    return lines
+### Quick Reference
 
-def main():
-    import os
+| Use Case | Recommended DPI |
+|----------|-----------------|
+| Screen display (Windows) | 96 |
+| Screen display (Mac/Retina) | 144 |
+| Standard printing | 300 |
+| High-quality printing | 600 |
 
-    # Prompt user for input
-    csv_file_path = input("Enter the path to the CSV file: ")
-    font_size = int(input("Enter the font size: "))
-    max_length_cm = float(input("Enter the maximum length per line (in cm): "))
-    address_column_number = int(input("Enter the column number containing the addresses (starting from 0): "))
+### How to Find Your DPI
 
-    # Convert cm to pixels (assuming 96 DPI, you can adjust as necessary)
-    max_width_px = int(max_length_cm * 37.8)
+#### For Label Printing
+Check your printer or label software settings. Most label printers (DYMO, Zebra, Brother) use **300 DPI**.
 
-    # Load the Arial font
-    font = ImageFont.truetype("arial.ttf", font_size)
+#### For Microsoft Word/Excel
+Word uses 96 DPI for screen display. If you're doing a mail merge:
+- For **screen preview**: use 96 DPI
+- For **print output**: use 300 DPI
 
-    # Read CSV, process addresses, and write to new CSV
-    output_file_path = os.path.splitext(csv_file_path)[0] + "_modified.csv"
-    with open(csv_file_path, mode='r', encoding='utf-8') as infile, open(output_file_path, mode='w', encoding='utf-8', newline='') as outfile:
-        reader = csv.reader(infile)
-        writer = csv.writer(outfile)
+#### For Label Software
+- **Avery Design & Print**: 300 DPI
+- **DYMO Label**: 300 DPI
+- **Bartender**: Check document properties
 
-        headers = next(reader)
-        writer.writerow(headers)
+#### Not Sure?
+1. Start with **96 DPI**
+2. Test with a small sample
+3. If lines are too long → increase DPI
+4. If lines break too early → decrease DPI
 
-        for row in reader:
-            if len(row) > address_column_number:
-                original_address = row[address_column_number]
-                split_lines = split_address_line(original_address, font, max_width_px)
-                modified_address = '\n'.join(split_lines)
-                row[address_column_number] = modified_address
-            writer.writerow(row)
+### The Math Behind It
 
-    print(f"Modified addresses saved to {output_file_path}")
+```
+pixels = (centimeters × DPI) / 2.54
 
-if __name__ == "__main__":
-    main()
+Example: 5 cm at 300 DPI
+pixels = (5 × 300) / 2.54 = 590.5 pixels
 ```
 
-## License
+---
+
+## 💡 Examples
+
+### Example 1: Basic Address Formatting
+
+**Input (`addresses.csv`):**
+```csv
+ID,Name,Full Address
+1,John Doe,"123 Main Street, Apartment 4B, New York, NY, 10001, USA"
+2,Jane Smith,"456 Oak Avenue, Suite 100, Los Angeles, CA, 90001, USA"
+```
+
+**Run:**
+```
+Enter the path to the CSV file: addresses.csv
+
+CSV Columns found:
+  0: ID
+  1: Name
+  2: Full Address
+
+Enter the column number containing the addresses: 2
+Enter the font name [arial]: 
+Enter the font size [12]: 
+Enter the maximum line width in cm: 4
+Enter the DPI [96]: 
+```
+
+**Output (`addresses_modified.csv`):**
+```csv
+ID,Name,Full Address
+1,John Doe,"123 Main Street,
+Apartment 4B,
+New York, NY, 10001,
+USA"
+2,Jane Smith,"456 Oak Avenue,
+Suite 100,
+Los Angeles, CA, 90001,
+USA"
+```
+
+### Example 2: Label Printing at 300 DPI
+
+For printing on 5cm wide labels:
+
+```
+Enter the maximum line width in cm: 5
+Enter the DPI [96]: 300
+```
+
+### Example 3: Different Font Size
+
+Using larger font for readability:
+
+```
+Enter the font name [arial]: arial
+Enter the font size [12]: 14
+Enter the maximum line width in cm: 6
+```
+
+---
+
+## ⚙️ Configuration Options
+
+### Supported Fonts
+
+The script searches for fonts in these locations:
+
+| Platform | Font Locations |
+|----------|----------------|
+| Windows | `C:/Windows/Fonts/` |
+| macOS | `/Library/Fonts/`, `/System/Library/Fonts/` |
+| Linux | `/usr/share/fonts/truetype/` |
+
+Common fonts that work well:
+- `arial` (Windows default)
+- `helvetica` (macOS)
+- `DejaVuSans` (Linux)
+
+### CSV Dialect Support
+
+The script automatically detects:
+- Comma-separated (`,`)
+- Semicolon-separated (`;`)
+- Tab-separated (`\t`)
+- Custom quote characters
+
+---
+
+## 🔧 Troubleshooting
+
+### "Font not found" Error
+
+**Problem:** The script can't locate the specified font.
+
+**Solutions:**
+1. Use the full path to the font file:
+   ```
+   Enter the font name: C:/Windows/Fonts/arial.ttf
+   ```
+2. Try a different font:
+   ```
+   Enter the font name: DejaVuSans
+   ```
+3. Copy a `.ttf` file to the script directory
+
+### Lines Not Breaking Correctly
+
+**Problem:** Lines are too long or too short.
+
+**Solutions:**
+1. **Lines too long**: Increase the DPI value
+2. **Lines too short**: Decrease the DPI value
+3. **Verify your target application's DPI settings**
+
+### CSV Encoding Issues
+
+**Problem:** Special characters appear corrupted.
+
+**Solutions:**
+1. Ensure your CSV is saved as UTF-8
+2. In Excel: Save As → CSV UTF-8
+
+### Column Index Out of Range
+
+**Problem:** Error about column index being invalid.
+
+**Solution:** Column numbers start at 0. If your address is in the 3rd column, enter `2`.
+
+---
+
+## 🤝 Contributing
+
+Contributions are welcome! Here's how:
+
+1. **Fork** the repository
+2. **Create** a feature branch:
+   ```bash
+   git checkout -b feature/amazing-feature
+   ```
+3. **Commit** your changes:
+   ```bash
+   git commit -m 'Add amazing feature'
+   ```
+4. **Push** to the branch:
+   ```bash
+   git push origin feature/amazing-feature
+   ```
+5. **Open** a Pull Request
+
+### Development Setup
+
+```bash
+# Clone your fork
+git clone https://github.com/YOUR_USERNAME/Address-Formatter-for-CSV-Files.git
+cd Address-Formatter-for-CSV-Files
+
+# Create virtual environment
+python -m venv venv
+source venv/bin/activate  # On Windows: venv\Scripts\activate
+
+# Install dependencies
+pip install -r requirements.txt
+
+# Run tests
+python -m pytest tests/
+```
+
+---
+
+## 📄 License
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
-## Contributing
+---
 
-1. Fork the repository.
-2. Create a new branch (`git checkout -b feature-branch`).
-3. Make your changes.
-4. Commit your changes (`git commit -am 'Add new feature'`).
-5. Push to the branch (`git push origin feature-branch`).
-6. Create a new Pull Request.
+## 🙏 Acknowledgments
 
-For any issues or feature requests, please open an issue on the GitHub repository.
+- [Pillow](https://pillow.readthedocs.io/) for image and text processing
+- All contributors who have helped improve this project
+
+---
+
+## 📞 Support
+
+- **Bug Reports**: [Open an issue](https://github.com/okdarnoc/Address-Formatter-for-CSV-Files/issues)
+- **Feature Requests**: [Open an issue](https://github.com/okdarnoc/Address-Formatter-for-CSV-Files/issues)
+- **Questions**: [Start a discussion](https://github.com/okdarnoc/Address-Formatter-for-CSV-Files/discussions)
+
+---
+
+Made with ❤️ for easier address formatting
